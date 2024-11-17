@@ -70,6 +70,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>C:\Users\asus\source\repos\ThreadPool\ThreadPool;$(IncludePath)</IncludePath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -129,7 +132,26 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="server.c" />
+    <ClCompile Include="server.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="404.html" />
+    <None Include="css\cursor.css" />
+    <None Include="index.html" />
+    <None Include="js\sakuraPlus.js" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="img\404.gif" />
+    <Image Include="img\bj.gif" />
+    <Image Include="img\cursor.jpg" />
+    <Image Include="img\cursor2 (2).jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <Media Include="music\404.mp3" />
+    <Media Include="music\bj.mp3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\ThreadPool\ThreadPool\ThreadPool.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

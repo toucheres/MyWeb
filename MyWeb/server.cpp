@@ -8,14 +8,16 @@
 #define BUF_SIZE 8192
 #define OK 1
 #define ERROR 0
-//#include <windows.h>
+
+
+#include <windows.h>
 #include <direct.h>  // For _getcwd
-#include <stdio.h>
-#include <stdlib.h>
 #include <sys/stat.h> 
 #include <time.h>
-#include <WinSock2.h>
+
+
 #include <threads.h>
+#include <ThreadPool.hpp>
 #pragma comment(lib,"ws2_32.lib")
 
 struct Handle_Request_Message_arg
@@ -584,7 +586,7 @@ int load_Winsock()
 	return 1;
 }
 
-void acceptclient(void* arg) 
+void acceptclient(LPVOID arg)
 {
 	struct Handle_Request_Message_arg* argn = (struct Handle_Request_Message_arg*)arg;
 	struct sockaddr_in ClientAddr = *(struct sockaddr_in*)argn->clientaddr;
@@ -592,7 +594,46 @@ void acceptclient(void* arg)
 	Length = argn->length;
 	char revbuf[BUF_SIZE];
 	//判断是否accept成功
-	SOCKET MessageSock = argn->message;
+	SOCKET MessageSock = (SOCKET)argn->message;
+	if (MessageSock == INVALID_SOCKET) {
+		printf("Failed to accept connection from client!\n");
+		system("pause");
+		exit(1);
+	}
+	printf("Succeed to accept connection from [%s:%d] !\n\n", inet_ntoa(ClientAddr.sin_addr), ntohs(ClientAddr.sin_port));
+
+	/* 接收客户端请求数据 */
+	memset(revbuf, 0, BUF_SIZE);	//每一个字节都用0来填充 
+	rval = recv(MessageSock, revbuf, BUF_SIZE, 0);
+	//revbuf[rval] = 0x00;//在字符串尾部添加'\0',没必要，
+	// 字符串后面没用完的几百个字符都是'\0'
+
+	//rval为recv返回的字符个数
+	if (rval <= 0)
+		printf("Failed to receive request message from client!\n");
+	else {
+		//输出请求数据内容
+		printf("%s\n", revbuf);
+		//处理请求
+		Handle_Request_Message(revbuf, MessageSock);
+	}
+
+
+	closesocket(MessageSock);//处理完请求，关闭客户端套接字
+	free(arg);
+	//一个请求对应一个套接字
+	printf("\n-----------------------------------------------------------\n");
+}
+
+unsigned long acceptclientsign(LPVOID arg)
+{
+	struct Handle_Request_Message_arg* argn = (struct Handle_Request_Message_arg*)arg;
+	struct sockaddr_in ClientAddr = *(struct sockaddr_in*)argn->clientaddr;
+	int rval, Length;
+	Length = argn->length;
+	char revbuf[BUF_SIZE];
+	//判断是否accept成功
+	SOCKET MessageSock = (SOCKET)argn->message;
 	if (MessageSock == INVALID_SOCKET) {
 		printf("Failed to accept connection from client!\n");
 		system("pause");
@@ -625,33 +666,41 @@ void acceptclient(void* arg)
 }
 
 
+
 void* get_voidptr_Request_Message_arg(SOCKET MessageSock,int Length, struct sockaddr_in* paddr)
 {
-	struct Handle_Request_Message_arg* arg = malloc(sizeof(struct Handle_Request_Message_arg));
-	memset(arg, 0, sizeof(struct Handle_Request_Message_arg));
-	arg->message = MessageSock;
-	arg->length = Length;
-	arg->clientaddr = paddr;
-	return (void*)arg;
+	struct Handle_Request_Message_arg* lastarg = (struct Handle_Request_Message_arg*)malloc(sizeof(struct Handle_Request_Message_arg));
+	if (!lastarg) 
+	{
+		std::cout << "重新生成arg" << std::endl;
+		lastarg = (struct Handle_Request_Message_arg*)malloc(sizeof(struct Handle_Request_Message_arg));
+	}
+	if (!lastarg) { std::cout << "arg malloc error!" << std::endl; return NULL; };
+	memset(lastarg, 0, sizeof(struct Handle_Request_Message_arg));
+	lastarg->message = (char*)MessageSock;
+	lastarg->length = Length;
+	//arg->clientaddr = (sockaddr)paddr;
+	lastarg->clientaddr = reinterpret_cast<sockaddr*>(paddr);
+	return (void*)lastarg;
 }
 
 void initmain()
-{
-	
+{	
 	SetConsoleOutputCP(CP_UTF8);
-
 
 	// 加载Winsock 
 	if (!load_Winsock())
 	{
 		printf("加载Winsock失败\n");
-		return 0;
+		return;
 	}
 }
 
 int main(int argc, char* argv[]) {
 
 	initmain();
+
+	TreadPool pool(5);
 
 	// 默认端口号
 	int port = SERVER_PORT;
@@ -672,7 +721,7 @@ int main(int argc, char* argv[]) {
 	memset(&ClientAddr, 0, sizeof(struct sockaddr_in));
 
 	int rval;//临时变量，接收listen返回值，判断是否成功 
-	const int Length = sizeof(struct sockaddr);//全局变量，存储struct sockaddr大小，方便传参
+	int Length = sizeof(struct sockaddr);//全局变量，存储struct sockaddr大小，方便传参
 
 	//char revbuf[BUF_SIZE];
 
@@ -751,13 +800,16 @@ int main(int argc, char* argv[]) {
 		//struct Handle_Request_Message_arg* arg = get_voidptr_Request_Message_arg(MessageSock,Length,&ClientAddr);
 
 		//记得尝试arg复用
-		DWORD dwThreadID = 0;
-		HANDLE handleFirst = CreateThread(NULL, 0, acceptclient, get_voidptr_Request_Message_arg(MessageSock, Length, &ClientAddr), 0, &dwThreadID);
+		//DWORD dwThreadID = 0;
+		//CreateThread(NULL, 0, acceptclientsign, get_voidptr_Request_Message_arg(MessageSock, Length, &ClientAddr), 0, &dwThreadID);
 		
+		pool.enqueue([&]() {
+			acceptclient(get_voidptr_Request_Message_arg(MessageSock, Length, (sockaddr_in*)&ClientAddr));
+		});
 	}
-
 	closesocket(ServerSock);	//关闭套接字 
 	WSACleanup();	//停止Winsock
 
 	return OK;
 }
+

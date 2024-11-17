@@ -15,8 +15,45 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="server.c">
+    <ClCompile Include="server.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="404.html">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="index.html">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="css\cursor.css" />
+    <None Include="js\sakuraPlus.js" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="img\cursor2 (2).jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="img\404.gif">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="img\bj.gif">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="img\cursor.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Media Include="music\404.mp3">
+      <Filter>资源文件</Filter>
+    </Media>
+    <Media Include="music\bj.mp3">
+      <Filter>资源文件</Filter>
+    </Media>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\ThreadPool\ThreadPool\ThreadPool.hpp">
+      <Filter>源文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
